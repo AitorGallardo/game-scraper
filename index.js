@@ -1,6 +1,6 @@
 const puppeteer = require("puppeteer-core");
 const chromium = require("@sparticuz/chromium");
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+
 console.log("Loading function");
 exports.handler = async (event, context) => {
   const browser = await puppeteer.launch({
@@ -36,25 +36,10 @@ exports.handler = async (event, context) => {
       waitUntil: ["load", "networkidle0", "domcontentloaded"],
     });
     const html = await page.content();
-    const s3Client = new S3Client({
-      region: process.env.AWS_BUCKET_REGION,
-      credentials: {
-        accessKeyId: process.env.ACCESS_KEY,
-        secretAccessKey: process.env.SECRET_KEY,
-      },
-    });
-    const bucketName = process.env.AWS_BUCKET_NAME;
-    const command = new PutObjectCommand({
-      Bucket: bucketName,
-      Key: outputFilePath,
-      Body: html,
-    });
-    try {
-      const response = await s3Client.send(command);
-      console.log(response);
-    } catch (err) {
-      console.error(err);
-    }
+    console.log('Html Page ',html);
+
+    // db connection inside a try catch block
+
   } catch (error) {
     console.log(error);
   } finally {
