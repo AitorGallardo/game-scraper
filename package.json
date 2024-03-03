@@ -2,11 +2,19 @@
   "name": "game-scraper",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "main": "index.js",
   "scripts": {
+    "zip": "zip -r game-scraper.zip . -x '*.git*'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@sparticuz/chromium": "^122.0.0",
+    "puppeteer-core": "^22.3.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
 }
