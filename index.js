@@ -1,8 +1,10 @@
 import puppeteerExtra from 'puppeteer-extra'
 import stealthPlugin from 'puppeteer-extra-plugin-stealth'
 import chromium from '@sparticuz/chromium'
+import axios from 'axios';
+import cheerio from 'cheerio';
 
-async function scrape(url='https://www.nationalgeographic.com/'){
+async function scrapeWithPuppeteer(url='https://www.nationalgeographic.com/'){
     try{
         puppeteerExtra.use(stealthPlugin())
 
@@ -40,12 +42,28 @@ async function scrape(url='https://www.nationalgeographic.com/'){
     }
 }
 
+async function scrapeWithCheerio(url='https://www.nationalgeographic.com/'){
+axios.get(url)
+    .then(response => {
+        const $ = cheerio.load(response.data);
+
+        $('a.game-info-title').each((i, element) => {
+            const link = $(element).attr('href');
+            const title = $(element).text();
+            console.log(`Title: ${title}, Link: ${link}`);
+        });
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
 export const handler = async (event, context) => {
     try{
         const body = JSON.parse(event.body)
         const {url} = body
 
-        const data = await scrape(url)
+        const data = await scrapeWithCheerio(url)
         console.log('data',data);
         
         return { 
@@ -67,6 +85,13 @@ export const handler = async (event, context) => {
         }
     }
 };
+
+handler({
+    body: JSON.stringify({
+        url: 'https://gg.deals/games/'
+    })
+},{
+})
 
 
 

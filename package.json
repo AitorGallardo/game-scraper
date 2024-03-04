@@ -13,6 +13,8 @@
   "license": "ISC",
   "dependencies": {
     "@sparticuz/chromium": "^122.0.0",
+    "axios": "^1.6.7",
+    "cheerio": "^1.0.0-rc.12",
     "puppeteer-core": "^22.3.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"
