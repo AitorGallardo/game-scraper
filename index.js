@@ -43,19 +43,32 @@ async function scrapeWithPuppeteer(url='https://www.nationalgeographic.com/'){
 }
 
 async function scrapeWithCheerio(url='https://www.nationalgeographic.com/'){
-axios.get(url)
-    .then(response => {
-        const $ = cheerio.load(response.data);
+    axios.get(url)
+        .then(response => {
+            const $ = cheerio.load(response.data);
 
-        $('a.game-info-title').each((i, element) => {
-            const link = $(element).attr('href');
-            const title = $(element).text();
-            console.log(`Title: ${title}, Link: ${link}`);
+            $('a.game-info-title').each((i, element) => {
+                const link = $(element).attr('href');
+                const title = $(element).text();
+                console.log(`Title: ${title}, Link: ${link}`);
+            });
+        })
+        .catch(error => {
+            console.error(error);
         });
-    })
-    .catch(error => {
-        console.error(error);
-    });
+}
+async function getGames(url='https://www.polygon.com/2020/12/14/22166004/best-games-2020-ps4-xbox-one-switch-pc-series-x'){
+    axios.get(url)
+        .then(response => {
+            const $ = cheerio.load(response.data);
+            $('h2 strong').each((i, element) => {
+                const text = $(element).text();
+                console.log(text);
+            });
+        })
+        .catch(error => {
+            console.error(error);
+        });
 }
 
 export const handler = async (event, context) => {
@@ -63,7 +76,7 @@ export const handler = async (event, context) => {
         const body = JSON.parse(event.body)
         const {url} = body
 
-        const data = await scrapeWithCheerio(url)
+        const data = await getGames(url)
         console.log('data',data);
         
         return { 
@@ -88,7 +101,7 @@ export const handler = async (event, context) => {
 
 handler({
     body: JSON.stringify({
-        url: 'https://gg.deals/games/'
+        url: 'https://www.polygon.com/2020/12/14/22166004/best-games-2020-ps4-xbox-one-switch-pc-series-x'
     })
 },{
 })
