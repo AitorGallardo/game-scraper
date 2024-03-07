@@ -3,6 +3,7 @@ import stealthPlugin from 'puppeteer-extra-plugin-stealth'
 import chromium from '@sparticuz/chromium'
 import axios from 'axios';
 import cheerio from 'cheerio';
+import pc from 'picocolors';
 
 async function scrapeWithPuppeteer(url='https://www.nationalgeographic.com/'){
     try{
@@ -98,8 +99,15 @@ async function scrapeGamesGoogle(url='https://www.nationalgeographic.com/'){
 
         const buttons = await page.evaluate(() => {
             const buttons = Array.from(document.querySelectorAll('button'));
-            return buttons.map(button => button.innerText);
+            return buttons.find(button => button.innerText === 'Rechazar todo');
         })
+
+        await page.evaluate(() => {
+            const buttons = Array.from(document.querySelectorAll('button'));
+            const actionButton = buttons.find(button => button.innerText === 'Rechazar todo');
+            if(actionButton) actionButton.click();
+        })
+
         // close the instance by closing all the pages
         const pages = await browser.pages()
         await Promise.all(pages.map(page => page.close()))
@@ -113,12 +121,47 @@ async function scrapeGamesGoogle(url='https://www.nationalgeographic.com/'){
 }
 
 
+async function scrapeGamesGoogleWithImages(url='https://www.nationalgeographic.com/',year=2020){
+    try{
+        puppeteerExtra.use(stealthPlugin())
+
+        const browser = await puppeteerExtra.launch({
+            headless: false, // change this to false to see the browser UI
+            executablePath: '/usr/bin/google-chrome',
+        })
+
+        const page = await browser.newPage()
+        await page.goto(url)
+
+        await page.evaluate(() => {
+            const buttons = Array.from(document.querySelectorAll('button'));
+            const actionButton = buttons.find(button => button.innerText === 'Rechazar todo');
+            if(actionButton) actionButton.click();
+        })
+        const ariaLabels = await page.evaluate(() => {
+            const links = Array.from(document.querySelectorAll('a[aria-label]'));
+            return links.map(link => link.getAttribute('aria-label'));
+        });
+        console.log(pc.green('Year: '),pc.magenta(year));
+        console.log(ariaLabels, ariaLabels.length);
+
+        // const pages = await browser.pages()
+        // await Promise.all(pages.map(page => page.close()))
+
+        // await browser.close()
+
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+
 export const handler = async (event, context) => {
     try{
         const body = JSON.parse(event.body)
-        const {url} = body
+        const {url,year} = body
 
-        const data = await scrapeGamesGoogle(url)
+        const data = await scrapeGamesGoogleWithImages(url,year)
         console.log('data',data);
         
         return { 
@@ -140,13 +183,23 @@ export const handler = async (event, context) => {
         }
     }
 };
+let from = 2003;
+const to = 2023;
 
-handler({
-    body: JSON.stringify({
-        url: 'https://www.google.com/search?q=most+popular+games+2003&sca_esv=1fcb60ee6ef69c6a&sxsrf=ACQVn08GKSjAxHE6n94NxfthkSvZ0AOVVA%3A1709679431068&ei=R6PnZfPjA6WI9u8PoL2TmAo&ved=0ahUKEwizo6yZnN6EAxUlhP0HHaDeBKMQ4dUDCBA&uact=5&oq=most+popular+games+2002&gs_lp=Egxnd3Mtd2l6LXNlcnAiF21vc3QgcG9wdWxhciBnYW1lcyAyMDAyMgUQABiABDIGEAAYFhgeMgsQABiABBiKBRiGAzILEAAYgAQYigUYhgNIzRZQmQpYkhJwAngBkAEAmAF4oAGyA6oBAzEuM7gBA8gBAPgBAZgCBaAC3wLCAgoQABhHGNYEGLADwgINEAAYgAQYigUYQxiwA8ICDhAAGOQCGNYEGLAD2AEBwgITEC4YgAQYigUYQxjIAxiwA9gBAsICFhAuGIAEGIoFGEMY1AIYyAMYsAPYAQLCAgoQIxiABBiKBRgnwgIKEAAYgAQYigUYQ5gDAIgGAZAGEroGBggBEAEYCboGBggCEAEYCJIHAzMuMqAHzRY&sclient=gws-wiz-serp'
-    })
-},{
-})
+while(from <= to){
+    setTimeout(() => {
+        handler({
+            body: JSON.stringify({
+                url: `https://www.google.com/search?q=most+popular+games+${from}&sca_esv=1fcb60ee6ef69c6a&sxsrf=ACQVn08GKSjAxHE6n94NxfthkSvZ0AOVVA%3A1709679431068&ei=R6PnZfPjA6WI9u8PoL2TmAo&ved=0ahUKEwizo6yZnN6EAxUlhP0HHaDeBKMQ4dUDCBA&uact=5&oq=most+popular+games+2002&gs_lp=Egxnd3Mtd2l6LXNlcnAiF21vc3QgcG9wdWxhciBnYW1lcyAyMDAyMgUQABiABDIGEAAYFhgeMgsQABiABBiKBRiGAzILEAAYgAQYigUYhgNIzRZQmQpYkhJwAngBkAEAmAF4oAGyA6oBAzEuM7gBA8gBAPgBAZgCBaAC3wLCAgoQABhHGNYEGLADwgINEAAYgAQYigUYQxiwA8ICDhAAGOQCGNYEGLAD2AEBwgITEC4YgAQYigUYQxjIAxiwA9gBAsICFhAuGIAEGIoFGEMY1AIYyAMYsAPYAQLCAgoQIxiABBiKBRgnwgIKEAAYgAQYigUYQ5gDAIgGAZAGEroGBggBEAEYCboGBggCEAEYCJIHAzMuMqAHzRY&sclient=gws-wiz-serp`,
+                year:from
+            })
+        },{
+        })
+    }, 1000);
+    from++;
+}
+
+
 
 
 
