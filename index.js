@@ -4,6 +4,22 @@ import chromium from '@sparticuz/chromium'
 import axios from 'axios';
 import cheerio from 'cheerio';
 import pc from 'picocolors';
+import { config } from 'dotenv'
+config()    
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const { Client } = require('pg');
+
+const DEFAULT_CONFIG = {
+    user: process.env.DB_USER ?? '',
+    host: process.env.DB_HOST ?? '',
+    database: process.env.DB_NAME ?? '',
+    password: process.env.DB_PASSWORD ?? '',
+    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 1234
+  }
+
+const client = new Client(DEFAULT_CONFIG);
 
 async function scrapeWithPuppeteer(url='https://www.nationalgeographic.com/'){
     try{
@@ -58,31 +74,56 @@ async function getGames(url='https://www.polygon.com/2020/12/14/22166004/best-ga
 }
 
 
+
+async function getAll () { 
+
+    await client.connect()
+    try {
+      const result = await client.query('SELECT * FROM games')
+      return result.rows
+    } finally {
+      client.end()
+    }
+  }
+
 async function getListOfGames(){
     try{
         puppeteerExtra.use(stealthPlugin())
 
-        const browser = await puppeteerExtra.launch({
-            headless: false, // change this to false to see the browser UI
-            executablePath: '/usr/bin/google-chrome',
-        })
-        let year = 2022;
-        while(year <= 2023){
-            const url = `https://www.google.com/search?q=most+popular+games+${year}&sca_esv=1fcb60ee6ef69c6a&sxsrf=ACQVn08GKSjAxHE6n94NxfthkSvZ0AOVVA%3A1709679431068&ei=R6PnZfPjA6WI9u8PoL2TmAo&ved=0ahUKEwizo6yZnN6EAxUlhP0HHaDeBKMQ4dUDCBA&uact=5&oq=most+popular+games+2002&gs_lp=Egxnd3Mtd2l6LXNlcnAiF21vc3QgcG9wdWxhciBnYW1lcyAyMDAyMgUQABiABDIGEAAYFhgeMgsQABiABBiKBRiGAzILEAAYgAQYigUYhgNIzRZQmQpYkhJwAngBkAEAmAF4oAGyA6oBAzEuM7gBA8gBAPgBAZgCBaAC3wLCAgoQABhHGNYEGLADwgINEAAYgAQYigUYQxiwA8ICDhAAGOQCGNYEGLAD2AEBwgITEC4YgAQYigUYQxjIAxiwA9gBAsICFhAuGIAEGIoFGEMY1AIYyAMYsAPYAQLCAgoQIxiABBiKBRgnwgIKEAAYgAQYigUYQ5gDAIgGAZAGEroGBggBEAEYCboGBggCEAEYCJIHAzMuMqAHzRY&sclient=gws-wiz-serp`
-            await main(browser,url,year)
-            year++;
-        }
-        browser.close()
+        // const browser = await puppeteerExtra.launch({
+        //     headless: false, // change this to false to see the browser UI
+        //     executablePath: '/usr/bin/google-chrome',
+        // })
+        // let year = 2023;
+        // let res = [];
+        // while(year <= 2023){
+        //     const url = `https://www.google.com/search?q=most+popular+games+${year}&sca_esv=1fcb60ee6ef69c6a&sxsrf=ACQVn08GKSjAxHE6n94NxfthkSvZ0AOVVA%3A1709679431068&ei=R6PnZfPjA6WI9u8PoL2TmAo&ved=0ahUKEwizo6yZnN6EAxUlhP0HHaDeBKMQ4dUDCBA&uact=5&oq=most+popular+games+2002&gs_lp=Egxnd3Mtd2l6LXNlcnAiF21vc3QgcG9wdWxhciBnYW1lcyAyMDAyMgUQABiABDIGEAAYFhgeMgsQABiABBiKBRiGAzILEAAYgAQYigUYhgNIzRZQmQpYkhJwAngBkAEAmAF4oAGyA6oBAzEuM7gBA8gBAPgBAZgCBaAC3wLCAgoQABhHGNYEGLADwgINEAAYgAQYigUYQxiwA8ICDhAAGOQCGNYEGLAD2AEBwgITEC4YgAQYigUYQxjIAxiwA9gBAsICFhAuGIAEGIoFGEMY1AIYyAMYsAPYAQLCAgoQIxiABBiKBRgnwgIKEAAYgAQYigUYQ5gDAIgGAZAGEroGBggBEAEYCboGBggCEAEYCJIHAzMuMqAHzRY&sclient=gws-wiz-serp`
+        //     res = await main(browser,url,year)
+        //     await insertData(res,year);
+        //     year++;
+        // }
 
-        // const pages = await browser.pages()
-        // await Promise.all(pages.map(page => page.close()))
-
-        // await browser.close()
+        
+        // browser.close()
 
     } catch (error) {
         console.error(error);
     }
 }
+
+const insertData = async (games,year) => {
+    await client.connect();
+
+    for (const game of games) {
+        await client.query(
+            'INSERT INTO games (title, release_year) VALUES ($1, $2)',
+            [game, year]
+        );
+    }
+
+    await client.end();
+};
+
 
 const main = async(browser,url,year) => {
     const page = await browser.newPage()
