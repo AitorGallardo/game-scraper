@@ -75,44 +75,43 @@ async function getGames(url='https://www.polygon.com/2020/12/14/22166004/best-ga
 
 
 
-async function getAll () { 
-
-    await client.connect()
-    try {
-      const result = await client.query('SELECT * FROM games')
-      return result.rows
-    } finally {
-      client.end()
-    }
-  }
-
-async function getListOfGames(){
+async function scrapeAndSeed({from,to}){
     try{
         puppeteerExtra.use(stealthPlugin())
 
-        // const browser = await puppeteerExtra.launch({
-        //     headless: false, // change this to false to see the browser UI
-        //     executablePath: '/usr/bin/google-chrome',
-        // })
-        // let year = 2023;
-        // let res = [];
-        // while(year <= 2023){
-        //     const url = `https://www.google.com/search?q=most+popular+games+${year}&sca_esv=1fcb60ee6ef69c6a&sxsrf=ACQVn08GKSjAxHE6n94NxfthkSvZ0AOVVA%3A1709679431068&ei=R6PnZfPjA6WI9u8PoL2TmAo&ved=0ahUKEwizo6yZnN6EAxUlhP0HHaDeBKMQ4dUDCBA&uact=5&oq=most+popular+games+2002&gs_lp=Egxnd3Mtd2l6LXNlcnAiF21vc3QgcG9wdWxhciBnYW1lcyAyMDAyMgUQABiABDIGEAAYFhgeMgsQABiABBiKBRiGAzILEAAYgAQYigUYhgNIzRZQmQpYkhJwAngBkAEAmAF4oAGyA6oBAzEuM7gBA8gBAPgBAZgCBaAC3wLCAgoQABhHGNYEGLADwgINEAAYgAQYigUYQxiwA8ICDhAAGOQCGNYEGLAD2AEBwgITEC4YgAQYigUYQxjIAxiwA9gBAsICFhAuGIAEGIoFGEMY1AIYyAMYsAPYAQLCAgoQIxiABBiKBRgnwgIKEAAYgAQYigUYQ5gDAIgGAZAGEroGBggBEAEYCboGBggCEAEYCJIHAzMuMqAHzRY&sclient=gws-wiz-serp`
-        //     res = await main(browser,url,year)
-        //     await insertData(res,year);
-        //     year++;
-        // }
+        const browser = await puppeteerExtra.launch({
+            headless: false, // change this to false to see the browser UI
+            executablePath: '/usr/bin/google-chrome',
+        })
+        await seedDB(browser,{from,to})
 
-        
-        // browser.close()
+        browser.close()
 
     } catch (error) {
         console.error(error);
     }
 }
 
-const insertData = async (games,year) => {
+const seedDB = async (browser,years) => {
+    let {from:year, to} = years;
+    let res = [];
+
     await client.connect();
+
+    while(year <= to){
+        const url = `https://www.google.com/search?q=most+popular+games+${year}&sca_esv=1fcb60ee6ef69c6a&sxsrf=ACQVn08GKSjAxHE6n94NxfthkSvZ0AOVVA%3A1709679431068&ei=R6PnZfPjA6WI9u8PoL2TmAo&ved=0ahUKEwizo6yZnN6EAxUlhP0HHaDeBKMQ4dUDCBA&uact=5&oq=most+popular+games+2002&gs_lp=Egxnd3Mtd2l6LXNlcnAiF21vc3QgcG9wdWxhciBnYW1lcyAyMDAyMgUQABiABDIGEAAYFhgeMgsQABiABBiKBRiGAzILEAAYgAQYigUYhgNIzRZQmQpYkhJwAngBkAEAmAF4oAGyA6oBAzEuM7gBA8gBAPgBAZgCBaAC3wLCAgoQABhHGNYEGLADwgINEAAYgAQYigUYQxiwA8ICDhAAGOQCGNYEGLAD2AEBwgITEC4YgAQYigUYQxjIAxiwA9gBAsICFhAuGIAEGIoFGEMY1AIYyAMYsAPYAQLCAgoQIxiABBiKBRgnwgIKEAAYgAQYigUYQ5gDAIgGAZAGEroGBggBEAEYCboGBggCEAEYCJIHAzMuMqAHzRY&sclient=gws-wiz-serp`
+        res = await getListOfGames(browser,url,year)
+        const insert = await insertIntoDB(res,year);
+        console.log(pc.cyan('INSERTED SUCCESSFULLY Year: '),pc.magenta(year),insert);
+        year++;
+    }
+
+    await client.end();
+
+};
+
+
+const insertIntoDB = async (games,year) => {
 
     for (const game of games) {
         await client.query(
@@ -121,11 +120,10 @@ const insertData = async (games,year) => {
         );
     }
 
-    await client.end();
 };
 
 
-const main = async(browser,url,year) => {
+const getListOfGames = async(browser,url,year) => {
     const page = await browser.newPage()
     await page.goto(url)
 
@@ -153,9 +151,9 @@ const main = async(browser,url,year) => {
 export const handler = async (event, context) => {
     try{
         const body = JSON.parse(event.body)
-        const {url} = body
+        const {url,from,to} = body
 
-        const data = await getListOfGames()
+        const data = await scrapeAndSeed({from,to})
         console.log('data',data);
         
         return { 
@@ -184,8 +182,9 @@ while(from <= to){
     setTimeout(() => {
         handler({
             body: JSON.stringify({
-                url: `https://www.google.com/search?q=most+popular+games+${from}&sca_esv=1fcb60ee6ef69c6a&sxsrf=ACQVn08GKSjAxHE6n94NxfthkSvZ0AOVVA%3A1709679431068&ei=R6PnZfPjA6WI9u8PoL2TmAo&ved=0ahUKEwizo6yZnN6EAxUlhP0HHaDeBKMQ4dUDCBA&uact=5&oq=most+popular+games+2002&gs_lp=Egxnd3Mtd2l6LXNlcnAiF21vc3QgcG9wdWxhciBnYW1lcyAyMDAyMgUQABiABDIGEAAYFhgeMgsQABiABBiKBRiGAzILEAAYgAQYigUYhgNIzRZQmQpYkhJwAngBkAEAmAF4oAGyA6oBAzEuM7gBA8gBAPgBAZgCBaAC3wLCAgoQABhHGNYEGLADwgINEAAYgAQYigUYQxiwA8ICDhAAGOQCGNYEGLAD2AEBwgITEC4YgAQYigUYQxjIAxiwA9gBAsICFhAuGIAEGIoFGEMY1AIYyAMYsAPYAQLCAgoQIxiABBiKBRgnwgIKEAAYgAQYigUYQ5gDAIgGAZAGEroGBggBEAEYCboGBggCEAEYCJIHAzMuMqAHzRY&sclient=gws-wiz-serp`,
-                year:from
+                // url: `https://www.google.com/search?q=most+popular+games+${from}&sca_esv=1fcb60ee6ef69c6a&sxsrf=ACQVn08GKSjAxHE6n94NxfthkSvZ0AOVVA%3A1709679431068&ei=R6PnZfPjA6WI9u8PoL2TmAo&ved=0ahUKEwizo6yZnN6EAxUlhP0HHaDeBKMQ4dUDCBA&uact=5&oq=most+popular+games+2002&gs_lp=Egxnd3Mtd2l6LXNlcnAiF21vc3QgcG9wdWxhciBnYW1lcyAyMDAyMgUQABiABDIGEAAYFhgeMgsQABiABBiKBRiGAzILEAAYgAQYigUYhgNIzRZQmQpYkhJwAngBkAEAmAF4oAGyA6oBAzEuM7gBA8gBAPgBAZgCBaAC3wLCAgoQABhHGNYEGLADwgINEAAYgAQYigUYQxiwA8ICDhAAGOQCGNYEGLAD2AEBwgITEC4YgAQYigUYQxjIAxiwA9gBAsICFhAuGIAEGIoFGEMY1AIYyAMYsAPYAQLCAgoQIxiABBiKBRgnwgIKEAAYgAQYigUYQ5gDAIgGAZAGEroGBggBEAEYCboGBggCEAEYCJIHAzMuMqAHzRY&sclient=gws-wiz-serp`,
+                from:2000,
+                to:2022
             })
         },{
         })
