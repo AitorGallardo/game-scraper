@@ -175,8 +175,7 @@ export const handler = async (event, context) => {
         }
     }
 };
-let from = 2023;
-const to = 2023;
+
 
 while(from <= to){
     setTimeout(() => {
