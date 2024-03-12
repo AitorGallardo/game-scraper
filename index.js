@@ -151,11 +151,10 @@ async function sPrice(url){
     axios.get(url)
         .then(response => {
             const $ = cheerio.load(response.data);
-            $('div').filter(function() {
-                return $(this).find('span.best').length > 0;
-            }).find('span.game-price-current').each((i, element) => {
-                const text = $(element).text();
-                console.log(text);
+            $('span.best').each((i, element) => {
+                const sibling = $(element).prev('span.price');
+                const text = sibling.text();
+                console.log('cada result',text);
             });
         })
         .catch(error => {
