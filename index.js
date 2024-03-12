@@ -147,13 +147,30 @@ const getListOfGames = async(browser,url,year) => {
     });
 }
 
+async function sPrice(url){
+    axios.get(url)
+        .then(response => {
+            const $ = cheerio.load(response.data);
+            $('div').filter(function() {
+                return $(this).find('span.best').length > 0;
+            }).find('span.game-price-current').each((i, element) => {
+                const text = $(element).text();
+                console.log(text);
+            });
+        })
+        .catch(error => {
+            console.error(error);
+        });
+}
+
 
 export const handler = async (event, context) => {
     try{
         const body = JSON.parse(event.body)
         const {url,from,to} = body
 
-        const data = await scrapeAndSeed({from,to})
+        // const data = await scrapeAndSeed({from,to})
+        const data = await sPrice('https://gg.deals/game/nba-2k23/')
         console.log('data',data);
         
         return { 
@@ -176,20 +193,14 @@ export const handler = async (event, context) => {
     }
 };
 
-
-while(from <= to){
-    setTimeout(() => {
-        handler({
-            body: JSON.stringify({
-                // url: `https://www.google.com/search?q=most+popular+games+${from}&sca_esv=1fcb60ee6ef69c6a&sxsrf=ACQVn08GKSjAxHE6n94NxfthkSvZ0AOVVA%3A1709679431068&ei=R6PnZfPjA6WI9u8PoL2TmAo&ved=0ahUKEwizo6yZnN6EAxUlhP0HHaDeBKMQ4dUDCBA&uact=5&oq=most+popular+games+2002&gs_lp=Egxnd3Mtd2l6LXNlcnAiF21vc3QgcG9wdWxhciBnYW1lcyAyMDAyMgUQABiABDIGEAAYFhgeMgsQABiABBiKBRiGAzILEAAYgAQYigUYhgNIzRZQmQpYkhJwAngBkAEAmAF4oAGyA6oBAzEuM7gBA8gBAPgBAZgCBaAC3wLCAgoQABhHGNYEGLADwgINEAAYgAQYigUYQxiwA8ICDhAAGOQCGNYEGLAD2AEBwgITEC4YgAQYigUYQxjIAxiwA9gBAsICFhAuGIAEGIoFGEMY1AIYyAMYsAPYAQLCAgoQIxiABBiKBRgnwgIKEAAYgAQYigUYQ5gDAIgGAZAGEroGBggBEAEYCboGBggCEAEYCJIHAzMuMqAHzRY&sclient=gws-wiz-serp`,
-                from:2000,
-                to:2022
-            })
-        },{
-        })
-    }, 1000);
-    from++;
-}
+handler({
+    body: JSON.stringify({
+        // url: `https://www.google.com/search?q=most+popular+games+${from}&sca_esv=1fcb60ee6ef69c6a&sxsrf=ACQVn08GKSjAxHE6n94NxfthkSvZ0AOVVA%3A1709679431068&ei=R6PnZfPjA6WI9u8PoL2TmAo&ved=0ahUKEwizo6yZnN6EAxUlhP0HHaDeBKMQ4dUDCBA&uact=5&oq=most+popular+games+2002&gs_lp=Egxnd3Mtd2l6LXNlcnAiF21vc3QgcG9wdWxhciBnYW1lcyAyMDAyMgUQABiABDIGEAAYFhgeMgsQABiABBiKBRiGAzILEAAYgAQYigUYhgNIzRZQmQpYkhJwAngBkAEAmAF4oAGyA6oBAzEuM7gBA8gBAPgBAZgCBaAC3wLCAgoQABhHGNYEGLADwgINEAAYgAQYigUYQxiwA8ICDhAAGOQCGNYEGLAD2AEBwgITEC4YgAQYigUYQxjIAxiwA9gBAsICFhAuGIAEGIoFGEMY1AIYyAMYsAPYAQLCAgoQIxiABBiKBRgnwgIKEAAYgAQYigUYQ5gDAIgGAZAGEroGBggBEAEYCboGBggCEAEYCJIHAzMuMqAHzRY&sclient=gws-wiz-serp`,
+        from:2000,
+        to:2022
+    })
+},{
+})
 
 
 
