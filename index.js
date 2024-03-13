@@ -122,6 +122,16 @@ const insertIntoDB = async (games,year) => {
 
 };
 
+const getFirst10DBGames = async () => {
+    await client.connect();
+    const res = await client.query(
+        'SELECT * FROM games ORDER BY id DESC LIMIT 3',
+    );
+
+    await client.end();
+    return res?.rows
+};
+
 
 const getListOfGames = async(browser,url,year) => {
     const page = await browser.newPage()
@@ -153,8 +163,8 @@ async function sPrice(url){
             const $ = cheerio.load(response.data);
             $('span.best').each((i, element) => {
                 const sibling = $(element).prev('span.price');
-                const text = sibling.text();
-                console.log('cada result',text);
+                const price = sibling.text();
+                return price ? parseFloat(price.replace(/[^\d,]/g, '').replace(',', '.')) : null;
             });
         })
         .catch(error => {
@@ -169,7 +179,14 @@ export const handler = async (event, context) => {
         const {url,from,to} = body
 
         // const data = await scrapeAndSeed({from,to})
-        const data = await sPrice('https://gg.deals/game/nba-2k23/')
+        const games = await getFirst10DBGames();
+        const gameWithPrices = games.map(async(game,index) => {
+            console.log(game);
+            setTimeout(async() => {
+                const data = await sPrice(`https://gg.deals/game/${game.slug}/`)
+                game.price = data;
+            },index*1000);
+        });
         console.log('data',data);
         
         return { 
