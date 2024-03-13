@@ -186,10 +186,15 @@ export const handler = async (event, context) => {
         // const data = await scrapeAndSeed({from,to})
         const games = await getFirst10DBGames();
         const gameWithPrices = await Promise.all(games.map(async(game) => {
-            console.log(game);
-            const data = await sPrice(`https://gg.deals/game/${game.slug}/`);
-            console.log('resultado de sPRICE', data);
-            return {...game, price: data};
+            try {
+                console.log(game);
+                const data = await sPrice(`https://gg.deals/game/${game.slug}/`);
+                console.log('resultado de sPRICE', data);
+                return {...game, price: data};
+            } catch (error) {
+                console.error(`Error fetching price for game ${game.slug}:`, error);
+                return game; // return the game without price if there was an error
+            }
         }));
         console.log('data',gameWithPrices);
         
