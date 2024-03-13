@@ -158,18 +158,23 @@ const getListOfGames = async(browser,url,year) => {
 }
 
 async function sPrice(url){
-    axios.get(url)
-        .then(response => {
-            const $ = cheerio.load(response.data);
-            $('span.best').each((i, element) => {
-                const sibling = $(element).prev('span.price');
-                const price = sibling.text();
-                return price ? parseFloat(price.replace(/[^\d,]/g, '').replace(',', '.')) : null;
-            });
-        })
-        .catch(error => {
-            console.error(error);
+    try {
+        const response = await axios.get(url);
+        const $ = cheerio.load(response.data);
+        let price = 0;
+        $('span.best').each((i, element) => {
+            const sibling = $(element).prev('span.price');
+            const text = sibling?.text();
+            console.log('sibling?????',text);
+            if(text){
+                price = text;
+                return;
+            }
         });
+        return price ? parseFloat(price.replace(/[^\d,]/g, '').replace(',', '.')) : null;
+    } catch (error) {
+        console.error(error);
+    }
 }
 
 
@@ -180,14 +185,13 @@ export const handler = async (event, context) => {
 
         // const data = await scrapeAndSeed({from,to})
         const games = await getFirst10DBGames();
-        const gameWithPrices = games.map(async(game,index) => {
+        const gameWithPrices = await Promise.all(games.map(async(game) => {
             console.log(game);
-            setTimeout(async() => {
-                const data = await sPrice(`https://gg.deals/game/${game.slug}/`)
-                game.price = data;
-            },index*1000);
-        });
-        console.log('data',data);
+            const data = await sPrice(`https://gg.deals/game/${game.slug}/`);
+            console.log('resultado de sPRICE', data);
+            return {...game, price: data};
+        }));
+        console.log('data',gameWithPrices);
         
         return { 
             statusCode: 200, 
