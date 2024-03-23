@@ -261,6 +261,16 @@ export const handler = async (event, context) => {
 
 import { IP_PULL } from "./ip-pull.js";
 
+async function fetchIPAddresses() {
+  try {
+      const response = await axios.get('https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt');
+      const ipAddresses = response.data.split('\n');  // Split the response data into an array of strings
+      return ipAddresses;
+  } catch (error) {
+      console.error(`Error fetching IP addresses: ${error}`);
+  }
+}
+
 let ipIndex = 0;
 
 async function fetchGameData(gameSlug) {
@@ -268,13 +278,14 @@ async function fetchGameData(gameSlug) {
     ipIndex = (ipIndex + 1) % IP_PULL.length;  // Cycle through IP addresses
     console.log('Current Proxy => ',proxy);
     try {
-        const response = await axios.get(`https://gg.deals/game/${gameSlug}/`, {
+        const response = await axios.get(`https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt`, {
             proxy: {
                 host: proxy.split(':')[0],
                 port: parseInt(proxy.split(':')[1])
             },
-            timeout: 3000  // Timeout of 3 seconds
-        });
+            timeout: 500  // Timeout of 3 seconds
+        }
+        );
 
         return response.data;
     } catch (error) {
@@ -284,8 +295,11 @@ async function fetchGameData(gameSlug) {
 
 // Use a self-invoking async function to handle the promises
 (async () => {
-    for (const gameSlug of IP_PULL) {
-        console.log(await fetchGameData('slay-the-spirit'));
-        await new Promise(resolve => setTimeout(resolve, 3000));  // Wait for 3 seconds before the next request
-    }
+    // Fetch the IP addresses
+    const ipAddresses = await fetchIPAddresses();
+    console.log('IP Addresses => ',ipAddresses);
+    // for (const gameSlug of [0]) {
+    //     console.log(await fetchGameData('slay-the-spire'));
+    //     // await new Promise(resolve => setTimeout(resolve, 3000));  // Wait for 3 seconds before the next request
+    // }
 })();
