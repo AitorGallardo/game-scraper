@@ -273,33 +273,40 @@ async function fetchIPAddresses() {
 
 let ipIndex = 0;
 
-async function fetchGameData(gameSlug) {
-    const proxy = IP_PULL[ipIndex];
-    ipIndex = (ipIndex + 1) % IP_PULL.length;  // Cycle through IP addresses
-    console.log('Current Proxy => ',proxy);
-    try {
-        const response = await axios.get(`https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt`, {
-            proxy: {
-                host: proxy.split(':')[0],
-                port: parseInt(proxy.split(':')[1])
-            },
-            timeout: 500  // Timeout of 3 seconds
-        }
-        );
+async function fetchGameData(ips, gameSlug) {
+  const proxy = ips[ipIndex];
+  ipIndex = (ipIndex + 1) % ips.length;  // Cycle through IP addresses
+  console.log('Current Proxy => ', proxy);
 
-        return response.data;
-    } catch (error) {
-        console.error(`Error fetching data for game ${gameSlug}: ${error}`);
-    }
+  for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+          const response = await axios.get(`https://gg.deals/game/slay-the-spire/`, {
+              proxy: {
+                  host: proxy.split(':')[0],
+                  port: parseInt(proxy.split(':')[1])
+              },
+              timeout: 50  // Timeout of 3 seconds
+          });
+          console.log(pc.bgGreen(`Attempt ${attempt + 1} successful for ip ${proxy}`));
+          return response.data;
+      } catch (error) {
+          console.error(`Attempt ${attempt + 1} failed for ip ${proxy}`);
+          if (attempt < 4) {
+              console.log('Retrying...');
+          }
+      }
+  }
+
+  console.error(pc.bgRed(`All attempts failed for ip ${proxy}`));
 }
 
-// Use a self-invoking async function to handle the promises
 (async () => {
     // Fetch the IP addresses
     const ipAddresses = await fetchIPAddresses();
-    console.log('IP Addresses => ',ipAddresses);
-    // for (const gameSlug of [0]) {
-    //     console.log(await fetchGameData('slay-the-spire'));
-    //     // await new Promise(resolve => setTimeout(resolve, 3000));  // Wait for 3 seconds before the next request
-    // }
+    console.log('TOTAL IP Addresses => ',ipAddresses.length);
+    for (const gameSlug of ipAddresses) {
+        await fetchGameData(ipAddresses,'slay-the-spire')
+        console.log(pc.magenta(`${ipIndex} PROXY IPS TESTED`));
+        // await new Promise(resolve => setTimeout(resolve, 3000));  // Wait for 3 seconds before the next request
+    }
 })();
